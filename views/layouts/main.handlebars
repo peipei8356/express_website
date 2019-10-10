@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Meadowlark Travel</title>
+    {{#if showTests}}
+    <link ref="vendor/mocha.css" />
+    <script src="//code.jquery.com/jquery-2.0.2.min.js"></script>
+    {{/if}}
+</head>
+
+<body>
+    <div class="container">
+        <header>
+
+            <img src="imgs/logo.jpg" width="100" height="100" alt="Meadowlark Travel Logo">
+        </header>
+        <div class="content">
+            {{{body}}}
+        </div>
+        <footer>this is footer</footer>
+        {{#if showTests}}
+        <div id="mocha"></div>
+        <script src="vendor/chai.js"></script>
+        <script src="vendor/mocha.js"></script>
+        <script>
+            mocha.ui('tdd');
+            var assert = chai.assert;
+        </script>
+        <script src="qa/tests-global.js"></script>
+        {{#if pageTestScript}}
+        <script src="{{pageTestScript}}"></script>
+        {{/if}}
+        <script>mocha.run();</script>
+        </script>
+        {{/if}}
+</body>
+
+</html>
