@@ -44,12 +44,15 @@ app.get('/request-group-rate', function (req, res) {
 });
 
 // 404 catch-all 处理器（中间件）
-app.use(function (req, res, next) {
+app.use(function (req, res) {
     res.status(404);
     res.render('404');
 });
 
 // 500 错误处理器（中间件）
+// 这应该出现在所有路由方法的结尾 
+// 需要注意的是，即使你不需要一个 " 下一步 " 方法 
+// 它也必须包含，以便 Express 将它识别为一个错误处理程序
 app.use(function (err, req, res, next) {
     console.error(err.stack);
     res.status(500);
