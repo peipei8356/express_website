@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const handlebars = require('express3-handlebars').create({ defaultLayout: 'main' })
 const fortunes = require('./lib/fortunes')
+const weather = require('./lib/weather')
 
 app.use(express.static(__dirname + '/public'))
 
@@ -13,6 +14,8 @@ app.set('port', process.env.PORT || 3000)
 // 是否开启mocha测试，必须放在所有路由之前
 app.use((req, res, next) => {
     res.locals.showTests = req.query.test === '1'
+    if (!res.locals.partials) res.locals.partials = {}
+    res.locals.partials.weather = weather.getWeatherData()
     next()
 })
 
