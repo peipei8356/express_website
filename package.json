@@ -21,6 +21,7 @@
     "express": "^4.17.1",
     "express3-handlebars": "^0.5.2",
     "mocha": "^6.2.1",
-    "nodemon": "^1.19.3"
+    "nodemon": "^1.19.3",
+    "zombie": "^6.1.4"
   }
 }

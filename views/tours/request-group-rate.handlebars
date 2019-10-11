@@ -5,9 +5,11 @@
     Group size: <input type="text" name="groupSize"><br>
     Email: <input type="email" name="email"><br>
     <input type="submit" value="Submit">
+    <a class="requestGroupRate" href="/request-group-rate">Request Group Rate.</a>
 </form>
 <script>
     $(document).ready(function () {
+        console.log(document.referrer)
         $('input[name="referrer"]').val(document.referrer);
     });
 </script>

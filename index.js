@@ -35,12 +35,12 @@ app.get('/contact', function (req, res) {
     res.render('pages/contact');
 });
 
-app.get('/tours/hood-river', (req, res) => {
+app.get('/hood-river', (req, res) => {
     res.render('tours/hood-river')
 })
 
-app.get('/tours/request-group-rate', function (req, res) {
-    res.render('request-group-rate');
+app.get('/request-group-rate', function (req, res) {
+    res.render('tours/request-group-rate');
 });
 
 // 404 catch-all 处理器（中间件）
