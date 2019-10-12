@@ -1,13 +1,28 @@
 const express = require('express')
 const app = express()
-const handlebars = require('express3-handlebars').create({ defaultLayout: 'main' })
+const bodyParser = require('body-parser')
+const hbs = require('express3-handlebars').create({
+    defaultLayout: 'main',
+    helpers: {
+        section: function (name, options) {
+            if (!this._sections) this._sections = {};
+            this._sections[name] = options.fn(this);
+            return null;
+        },
+        foo: function () {
+            return 'FOO!';
+        }
+    }
+})
+
 const fortunes = require('./lib/fortunes')
 const weather = require('./lib/weather')
 
 app.use(express.static(__dirname + '/public'))
+app.use(bodyParser())
 
 // 设置 handlebars 视图引擎
-app.engine('handlebars', handlebars.engine)
+app.engine('handlebars', hbs.engine)
 app.set('view engine', 'handlebars')
 app.set('port', process.env.PORT || 3000)
 
@@ -24,6 +39,16 @@ app.get('/', function (req, res) {
     res.render('home');
 });
 
+app.post('/user-login', function (req, res) {
+    let { userName, userPwd } = req.body
+    if (userName === 'zhangsan' && userPwd === '111111') {
+        res.redirect(303, '/thank-you')
+    } else {
+        res.send('user-login fail')
+    }
+
+
+})
 // about
 app.get('/about', function (req, res) {
     // var randomFortune = fortunes[Math.floor(Math.random() * fortunes.length)]

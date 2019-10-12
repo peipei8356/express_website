@@ -1,2 +1,21 @@
 <h1>welcome to home page</h1>
-{{> weather}}
+<!-- 使用子模板 -->
+{{>weather}}
+
+<h1>Test Page</h1>
+<p>We're testing some jQuery stuff.</p>
+
+{{#section 'jquery'}}
+<h2>this is handlebars sections</h2>
+<script>
+    $('document').ready(function () {
+        $('h1').html('jQuery Works');
+    });         
+</script>
+{{/section}}
+
+{{foo}}
+
+{{#section 'test'}}<h1>Hello. how are you?</h1>{{/section}}
+{{{_sections.test}}}
+{{{_sections.jquery}}}
