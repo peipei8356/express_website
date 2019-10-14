@@ -8,6 +8,7 @@ const fortunes = require('./lib/fortunes')
 const weather = require('./lib/weather')
 const formidable = require('formidable') // 表单处理中间件
 const fs = require('fs')
+const nodemailer = require('nodemailer')
 const hbs = require('express3-handlebars').create({
     defaultLayout: 'main',
     helpers: {
