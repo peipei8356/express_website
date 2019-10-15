@@ -9,6 +9,7 @@ const weather = require('./lib/weather')
 const formidable = require('formidable') // 表单处理中间件
 const fs = require('fs')
 const nodemailer = require('nodemailer')
+const credentials = require('./lib/credentials')
 const hbs = require('express3-handlebars').create({
     defaultLayout: 'main',
     helpers: {
@@ -23,7 +24,7 @@ const hbs = require('express3-handlebars').create({
     }
 })
 
-const cookieStr = 'cookie122222' + new Date().getTime()
+const cookieStr = credentials.cookieSecret + new Date().getTime()
 
 // 1\. bodyParser.json(options): 解析json数据
 // 2\. bodyParser.raw(options): 解析二进制格式(Buffer流数据)
@@ -83,7 +84,35 @@ app.get('/', function (req, res) {
         httpOnly: true, // 只允许服务器修改
         // maxAge:  // 指定cookie过期时间,单位毫秒
     })
+
     res.render('home')
+})
+
+app.get('/send-email', (req, res, next) => {
+    const transporter = nodemailer.createTransport({
+        // host: 'smtp.ethereal.email',
+        service: 'qq', // 使用了内置传输发送邮件 查看支持列表：https://nodemailer.com/smtp/well-known/
+        port: 465, // SMTP 端口
+        secureConnection: true, // 使用了 SSL
+        auth: {
+            user: credentials.gmail.user,
+            // 这里密码不是qq密码，是你设置的smtp授权码
+            pass: credentials.gmail.password,
+        }
+    })
+
+    transporter.sendMail({
+        from: credentials.gmail.user,
+        to: 'peipei8356@163.com',
+        subject: 'Node发送测试文本内容',
+        html: '测试文本内容',
+        text: '加油呀',
+    }, function (err, info) {
+        if (err) {
+            return console.log(err);
+        }
+        console.log('Message sent: %s', info.messageId);
+    })
 })
 
 // 用户登录
