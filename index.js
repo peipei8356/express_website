@@ -1,3 +1,4 @@
+const http = require('http')
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser') // 将Htpp纯文本数据转换成更容易处理的对象的中间件解析器
@@ -8,8 +9,8 @@ const fortunes = require('./lib/fortunes')
 const weather = require('./lib/weather')
 const formidable = require('formidable') // 表单处理中间件
 const fs = require('fs')
-const nodemailer = require('nodemailer')
 const credentials = require('./lib/credentials')
+const email = require('./lib/email')()
 const hbs = require('express3-handlebars').create({
     defaultLayout: 'main',
     helpers: {
@@ -24,6 +25,16 @@ const hbs = require('express3-handlebars').create({
     }
 })
 
+switch (app.get('env')) {
+    case 'development':
+        app.use(require('morgan')('dev'))
+        break
+    case 'production':
+        app.use(require('express-logger')({
+            path: __dirname + '/log/requests.log'
+        }))
+        break
+}
 const cookieStr = credentials.cookieSecret + new Date().getTime()
 
 // 1\. bodyParser.json(options): 解析json数据
@@ -93,31 +104,9 @@ app.get('/', function (req, res) {
     res.render('home')
 })
 
-app.get('/send-email', (req, res, next) => {
-    const transporter = nodemailer.createTransport({
-        // host: 'smtp.ethereal.email',
-        service: 'qq', // 使用了内置传输发送邮件 查看支持列表：https://nodemailer.com/smtp/well-known/
-        port: 465, // SMTP 端口
-        secureConnection: true, // 使用了 SSL
-        auth: {
-            user: credentials.gmail.user,
-            // 这里密码不是qq密码，是你设置的smtp授权码
-            pass: credentials.gmail.password,
-        }
-    })
-
-    transporter.sendMail({
-        from: credentials.gmail.user,
-        to: 'peipei8356@163.com',
-        subject: 'Node发送测试文本内容',
-        html: '测试文本内容',
-        text: '加油呀',
-    }, function (err, info) {
-        if (err) {
-            return console.log(err);
-        }
-        console.log('Message sent: %s', info.messageId);
-    })
+// 发送邮件
+app.post('/send-email', (req, res, next) => {
+    email.send('peipei8356@163.com', 'Node test', '你好,Eva,这里是测试文本内容')
 })
 
 // 用户登录
@@ -156,8 +145,6 @@ app.post('/user-login', function (req, res) {
 
 // about
 app.get('/about', function (req, res) {
-    // var randomFortune = fortunes[Math.floor(Math.random() * fortunes.length)]
-    // res.render('about', { fortune: getFortunes() })
     res.render('about', {
         fortune: fortunes.getFortunes(),
         pageTestScript: 'qa/tests-about.js'
@@ -251,8 +238,22 @@ app.use(function (err, req, res, next) {
 })
 
 // 启动应用程序
-const server = app.listen(3000, () => {
-    const host = server.address().address
-    const port = server.address().port
-    console.log('App listening at http://%s%s', host, port)
-})
+// const server = app.listen(3000, () => {
+//     const host = server.address().address
+//     const port = server.address().port
+//     console.log('App listening at http://%s%s', host, port)
+// })
+
+function startServer() {
+    http.createServer(app).listen(app.get('port'), function () {
+        console.log('Express started in ' + app.get('env') + ' mode on http://localhost:' + app.get('port') + '; press Ctrl-C to terminate.');
+    });
+}
+
+// 当直接运行脚本时，require.main === module 是true；
+// 如果它是 false，表明你的脚本是另外一个脚本用 require 加载进来的。
+if (require.main === module) {
+    startServer()
+} else {
+    module.exports = startServer
+}
