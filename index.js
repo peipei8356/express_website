@@ -72,6 +72,11 @@ app.use((req, res, next) => {
     if (!res.locals.partials) res.locals.partials = {}
     res.locals.partials.weather = weather.getWeatherData()
     next()
+    // 如果不调用next()，管道就会被终止，也不会再有处理器或中间件做后续处理。
+    // 如果你不调用next() ，则应该发送一个响应到客户端（res.send、res.json、res.render 等）；
+    // 如果你不这样做，客户端会被挂起并最终导致超时。 
+    // 如果调用了next() ，一般不宜再发送响应到客户端。
+    // 如果你发送了，管道中后续的中间件或路由处理器还会执行，但它们发送的任何响应都会被忽略
 })
 
 // 项目根目录
