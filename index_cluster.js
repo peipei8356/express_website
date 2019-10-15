@@ -17,7 +17,8 @@ if (cluster.isMaster) {
     });
     // 当有工作线程死掉（退出）时，创建一个工作线程代替它
     cluster.on('exit', function (worker, code, signal) {
-        console.log('CLUSTER: Worker %d died with exit code %d (%s)', worker.id, code, signal); startWorker();
+        console.log('CLUSTER: Worker %d died with exit code %d (%s)', worker.id, code, signal);
+        startWorker();
     });
 } else {
     // 在这个工作线程上启动我们的应用服务器，参见 meadowlark.js     

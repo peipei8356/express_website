@@ -82,12 +82,52 @@ app.use((req, res, next) => {
     res.locals.showTests = req.query.test === '1'
     if (!res.locals.partials) res.locals.partials = {}
     res.locals.partials.weather = weather.getWeatherData()
+    const cluster = require('cluster')
+    if (cluster.isWorker) console.log('Worker %d received request', cluster.worker.id);
     next()
     // 如果不调用next()，管道就会被终止，也不会再有处理器或中间件做后续处理。
     // 如果你不调用next() ，则应该发送一个响应到客户端（res.send、res.json、res.render 等）；
     // 如果你不这样做，客户端会被挂起并最终导致超时。 
     // 如果调用了next() ，一般不宜再发送响应到客户端。
     // 如果你发送了，管道中后续的中间件或路由处理器还会执行，但它们发送的任何响应都会被忽略
+})
+
+app.use(function (req, res, next) {
+    // 为这个请求创建一个域
+    var domain = require('domain').create()
+    // 处理这个域中的错误
+    domain.on('error', function (err) {
+        console.error('DOMAIN ERROR CAUGHT\n', err.stack)
+        try {
+            // 在 5 秒内进行故障保护关机
+            setTimeout(function () {
+                console.error('Failsafe shutdown.')
+                process.exit(1)
+            }, 5000);
+            // 从集群中断开
+            var worker = require('cluster').worker
+            if (worker) worker.disconnect()
+            // 停止接收新请求
+            server.close()
+            try {
+                // 尝试使用 Express 错误路由
+                next(err)
+            } catch (err) {
+                // 如果 Express 错误路由失效，尝试返回普通文本响应
+                console.error('Express error mechanism failed.\n', err.stack)
+                res.statusCode = 500
+                res.setHeader('content-type', 'text/plain')
+                res.end('Server error.')
+            }
+        } catch (err) {
+            console.error('Unable to send 500 response.\n', err.stack)
+        }
+    });
+    // 向域中添加请求和响应对象
+    domain.add(req)
+    domain.add(res)
+    // 执行该域中剩余的请求链
+    domain.run(next)
 })
 
 // 项目根目录
@@ -102,6 +142,18 @@ app.get('/', function (req, res) {
     })
 
     res.render('home')
+})
+
+// 错误处理
+app.get('/fail', function (req, res) {
+    throw new Error('Nope!')
+})
+
+// **错误的示范**
+app.get('/epic-fail', function (req, res) {
+    process.nextTick(function () {
+        throw new Error('Kaboom!')
+    })
 })
 
 // 发送邮件

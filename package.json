@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "set NODE_ENV='development' && nodemon index.js",
+    "dev-cluster": "set NODE_ENV='development' && nodemon index_cluster.js",
     "pro": "set NODE_ENV='production' && nodemon index.js"
   },
   "repository": {
