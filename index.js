@@ -1,6 +1,6 @@
-const http = require('http')
 const express = require('express')
 const app = express()
+const server = require('http').createServer(app)
 const bodyParser = require('body-parser') // 将Htpp纯文本数据转换成更容易处理的对象的中间件解析器
 const cookieParser = require('cookie-parser')
 // const sessionParser = require('express-session')
@@ -43,12 +43,20 @@ const cookieStr = credentials.cookieSecret + new Date().getTime()
 // 4\. bodyParser.urlencoded(options): 解析UTF-8的编码的数据。
 
 // 创建数据库连接
+// 用户登录
 const connection = mysql.createConnection({
-    host: '47.99.40.220',
+    host: '127.0.0.1',
     user: 'root',
-    password: 'Aa111111',
-    database: 'demo'
+    password: 'root',
+    database: 'db'
 })
+
+// const connection = mysql.createConnection({
+//     host: '47.99.40.220',
+//     user: 'root',
+//     password: 'Aa111111',
+//     database: 'demo'
+// })
 
 // const pool = mysql.createPool({
 //     connectionLimit: 10,
@@ -161,28 +169,41 @@ app.post('/send-email', (req, res, next) => {
     email.send('peipei8356@163.com', 'Node test', '你好,Eva,这里是测试文本内容')
 })
 
+// 重复使用路由
+function authorize(req, res, next) {
+    if (req.session.authorized) return next()
+    res.render('not-authorized')
+}
+
 // 用户登录
-app.post('/user-login', function (req, res) {
+app.get('/user-login', authorize, (req, res, next) => {
+    res.render('user-login')
+})
+
+app.post('/post-user-login', function (req, res) {
     let { userName } = req.body
+
+    console.log(userName)
     try {
         // 开启数据库连接
         connection.connect()
 
-        const queryStr = `select * from users where uname="${userName}"`
+
+        const queryStr = `select * from user where uname="${userName}"`
 
         // 查询数据库
         connection.query(queryStr, function (error, results, fields) {
             if (error) throw error
+
             // pool.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
             //     if (error) throw error
             //     console.log('The solution is: ', results[0].solution)
             // })
 
             if (results.length > 0) {  // 查询到相关数据则表示成功登陆
-                // res.render('user-login', { isLogin: true })
-                res.send('success')
+                res.render('user-status', { isLogin: true })
             } else {
-                res.render('user-login', { isLogin: false })
+                res.render('user-status', { isLogin: false })
             }
 
             // res.end()
@@ -227,7 +248,10 @@ app.post('/upload/:year/:month', function (req, res) {
 
         const fileOriginalFilename = files.photo.name
         const filePath = files.photo.path
-        const dstPath = `./uploads/${new Date().getTime()}${fileOriginalFilename}`
+        const fileDir = `${__dirname}/uploads`
+        // 文件夹是否存在，不存在则创建文件夹
+        fs.existsSync(fileDir) || fs.mkdirSync(fileDir)
+        const dstPath = `${fileDir}/${new Date().getTime()}${fileOriginalFilename}`
         const readStream = fs.createReadStream(filePath) // 打开一个可读的文件流并且返回一个fs.ReadStream对象
         const writeStream = fs.createWriteStream(dstPath) // 将文件流写入目标磁盘
 
@@ -257,6 +281,12 @@ app.get('/hood-river', (req, res) => {
 // request-group-rate
 app.get('/request-group-rate', function (req, res) {
     res.render('tours/request-group-rate')
+})
+
+// 添加自动化渲染
+const autoview = {}
+app.use((req, res, next) => {
+    const path = req.path.toLowerCase()
 })
 
 // 404 catch-all 处理器（中间件）
@@ -297,7 +327,7 @@ app.use(function (err, req, res, next) {
 // })
 
 function startServer() {
-    http.createServer(app).listen(app.get('port'), function () {
+    server.listen(app.get('port'), function () {
         console.log('Express started in ' + app.get('env') + ' mode on http://localhost:' + app.get('port') + '; press Ctrl-C to terminate.');
     });
 }
