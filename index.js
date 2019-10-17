@@ -182,8 +182,6 @@ app.get('/user-login', authorize, (req, res, next) => {
 
 app.post('/post-user-login', function (req, res) {
     let { userName } = req.body
-
-    console.log(userName)
     try {
         // 开启数据库连接
         connection.connect()
@@ -287,6 +285,20 @@ app.get('/request-group-rate', function (req, res) {
 const autoview = {}
 app.use((req, res, next) => {
     const path = req.path.toLowerCase()
+    // 检查缓存；如果它在那里，渲染这个视图
+    if (autoview[path]) {
+        return res.render(autoview[path])
+    }
+
+    // 如果它不在缓存里，那就看看有没有 .handlebars 文件能匹配
+    if (fs.existsSync(`${__dirname}/views/${path}.handlebars`)) {
+        autoViews[path] = path.replace(/^\//, '')
+        return res.render(`${__dirname}/views/${path}.handlebars`)
+    }
+
+    // 没发现视图；转到 404 处理器
+    next()
+
 })
 
 // 404 catch-all 处理器（中间件）
