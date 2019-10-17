@@ -21,6 +21,9 @@ const hbs = require('express3-handlebars').create({
         },
         foo: function () {
             return 'FOO!'
+        },
+        static(name) {
+            return require('./lib/static.js').map(name)
         }
     }
 })
