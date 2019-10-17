@@ -36,6 +36,7 @@
     "express-logger": "0.0.3",
     "formidable": "^1.2.1",
     "loadtest": "^3.0.8",
+    "mongoose": "^5.7.5",
     "morgan": "^1.9.1",
     "nodemailer": "^6.3.1"
   }

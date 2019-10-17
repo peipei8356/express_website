@@ -11,6 +11,8 @@ const formidable = require('formidable') // 表单处理中间件
 const fs = require('fs')
 const credentials = require('./lib/credentials')
 const email = require('./lib/email')()
+const mongoose = require('mongoose')
+const Vacation = require('./public/models/vacation')
 const hbs = require('express3-handlebars').create({
     defaultLayout: 'main',
     helpers: {
@@ -54,6 +56,77 @@ const connection = mysql.createConnection({
     database: 'db'
 })
 
+
+mongoose.connect(credentials.connectionStr, {
+    server: {
+        socketOptions: { keepAlive: 1 }
+    }
+})
+
+Vacation.find(function (err, vacations) {
+    if (vacations.length) return;
+    new Vacation({
+        name: '测试数据1',
+        slug: 'hood-river-day-trip',
+        category: 'Day Trip',
+        sku: 'HR199',
+        description: 'Spend a day sailing on the Columbia and ' +
+            'enjoying craft beers in Hood River!',
+        priceInCents: 9995,
+        tags: ['day trip', 'hood river', 'sailing', 'windsurfing', 'breweries'],
+        inSeason: true,
+        maximumGuests: 16,
+        available: true,
+        packagesSold: 0,
+    }).save();
+
+    new Vacation({
+        name: '测试数据2',
+        slug: 'oregon-coast-getaway',
+        category: 'Weekend Getaway',
+        sku: 'OC39',
+        description: 'Enjoy the ocean air and quaint coastal towns!',
+        priceInCents: 269995,
+        tags: ['weekend getaway', 'oregon coast', 'beachcombing'],
+        inSeason: false,
+        maximumGuests: 8,
+        available: true,
+        packagesSold: 0,
+    }).save();
+
+    new Vacation({
+        name: '测试数据3',
+        slug: 'rock-climbing-in-bend',
+        category: 'Adventure',
+        sku: 'B99',
+        description: 'Experience the thrill of climbing in the high desert.',
+        priceInCents: 289995,
+        tags: ['weekend getaway', 'bend', 'high desert', 'rock climbing'],
+        inSeason: true,
+        requiresWaiver: true,
+        maximumGuests: 4,
+        available: false,
+        packagesSold: 0,
+        notes: 'The tour guide is currently recovering from a skiing accident.',
+    }).save();
+});
+
+app.get('/vacations', (req, res, next) => {
+    Vacation.find({ available: true }, function (err, vacations) {
+        var context = {
+            vacations: vacations.map(function (vacation) {
+                return {
+                    sku: vacation.sku,
+                    name: vacation.name,
+                    description: vacation.description,
+                    price: vacation.getDisplayPrice(),
+                    inSeason: vacation.inSeason,
+                }
+            })
+        };
+        res.render('vacations', context);
+    });
+})
 // const connection = mysql.createConnection({
 //     host: '47.99.40.220',
 //     user: 'root',
