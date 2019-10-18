@@ -20,5 +20,27 @@ vacationSchema.methods.getDisplayPrice = function () {
     return '$' + (this.priceInCents / 100).toFixed(2);
 }
 
-var Vacation = mongoose.model('Vacation', vacationSchema)
-module.exports = Vacation
+// vacationSchema.methods.addVacation = function (vacation) {
+//     Vacation.find(function (err, vacations) {
+//         if (vacations.length) return
+//         new Vacation(vacation).save()
+
+//         // new Vacation({
+//         //     name: '测试数据3',
+//         //     slug: 'rock-climbing-in-bend',
+//         //     category: 'Adventure',
+//         //     sku: 'B99',
+//         //     description: 'Experience the thrill of climbing in the high desert.',
+//         //     priceInCents: 289995,
+//         //     tags: ['weekend getaway', 'bend', 'high desert', 'rock climbing'],
+//         //     inSeason: true,
+//         //     requiresWaiver: true,
+//         //     maximumGuests: 4,
+//         //     available: false,
+//         //     packagesSold: 0,
+//         //     notes: 'The tour guide is currently recovering from a skiing accident.',
+//         // }).save();
+//     })
+// }
+
+module.exports = mongoose.model('Vacation', vacationSchema)
