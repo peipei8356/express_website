@@ -14,48 +14,63 @@ const email = require('./lib/email')()
 const mongoose = require('mongoose')
 const Vacation = require('./public/controllers/vacation')
 const hbs = require('express3-handlebars').create({
-    defaultLayout: 'main',
-    helpers: {
-        section: function (name, options) {
-            if (!this._sections) this._sections = {}
-            this._sections[name] = options.fn(this)
-            return null
-        },
-        foo: function () {
-            return 'FOO!'
-        },
-        static(name) {
-            return require('./lib/static.js').map(name)
-        }
+  defaultLayout: 'main',
+  helpers: {
+    section: function(name, options) {
+      if (!this._sections) this._sections = {}
+      this._sections[name] = options.fn(this)
+      return null
+    },
+    foo: function() {
+      return 'FOO!'
+    },
+    static(name) {
+      return require('./lib/static.js').map(name)
     }
+  }
+})
+// 打开 server 对象，并发送该句柄。
+const netServer = require('net').createServer()
+const cp = require('child_process')
+const fsWorker = cp.fork('./fs.js')
+const sub = cp.fork('./sub.js')
+
+netServer.on('connection', socket => {
+  socket.end('由父进程处理')
+})
+
+netServer.listen(1337, () => {
+  fsWorker.send('server', netServer)
+  sub.send('subserver', netServer)
 })
 
 switch (app.get('env')) {
-    case 'development':
-        app.use(require('morgan')('dev'))
-        break
-    case 'production':
-        app.use(require('express-logger')({
-            path: __dirname + '/log/requests.log'
-        }))
-        break
+  case 'development':
+    app.use(require('morgan')('dev'))
+    break
+  case 'production':
+    app.use(
+      require('express-logger')({
+        path: __dirname + '/log/requests.log'
+      })
+    )
+    break
 }
 const cookieStr = credentials.cookieSecret + new Date().getTime()
 
 // 创建数据库连接
 // 用户登录
 const connection = mysql.createConnection({
-    host: '127.0.0.1',
-    user: 'root',
-    password: 'root',
-    database: 'db'
+  host: '127.0.0.1',
+  user: 'root',
+  password: 'root',
+  database: 'db'
 })
 
-
 mongoose.connect(credentials.connectionStr, {
-    server: {
-        socketOptions: { keepAlive: 1 }
-    }
+  server: {
+    socketOptions: { keepAlive: 1 }
+  }
 })
 
 // const connection = mysql.createConnection({
@@ -94,249 +109,250 @@ app.set('port', process.env.PORT || 3000)
 
 // 是否开启mocha测试，必须放在所有路由之前
 app.use((req, res, next) => {
-    res.locals.showTests = req.query.test === '1'
-    if (!res.locals.partials) res.locals.partials = {}
-    res.locals.partials.weather = weather.getWeatherData()
-    const cluster = require('cluster')
-    if (cluster.isWorker) console.log('Worker %d received request', cluster.worker.id);
-    next()
-    // 如果不调用next()，管道就会被终止，也不会再有处理器或中间件做后续处理。
-    // 如果你不调用next() ，则应该发送一个响应到客户端（res.send、res.json、res.render 等）；
-    // 如果你不这样做，客户端会被挂起并最终导致超时。 
-    // 如果调用了next() ，一般不宜再发送响应到客户端。
-    // 如果你发送了，管道中后续的中间件或路由处理器还会执行，但它们发送的任何响应都会被忽略
+  res.locals.showTests = req.query.test === '1'
+  if (!res.locals.partials) res.locals.partials = {}
+  res.locals.partials.weather = weather.getWeatherData()
+  const cluster = require('cluster')
+  if (cluster.isWorker)
+    console.log('Worker %d received request', cluster.worker.id)
+  next()
+  // 如果不调用next()，管道就会被终止，也不会再有处理器或中间件做后续处理。
+  // 如果你不调用next() ，则应该发送一个响应到客户端（res.send、res.json、res.render 等）；
+  // 如果你不这样做，客户端会被挂起并最终导致超时。
+  // 如果调用了next() ，一般不宜再发送响应到客户端。
+  // 如果你发送了，管道中后续的中间件或路由处理器还会执行，但它们发送的任何响应都会被忽略
 })
 
-app.use(function (req, res, next) {
-    // 为这个请求创建一个域
-    var domain = require('domain').create()
-    // 处理这个域中的错误
-    domain.on('error', function (err) {
-        console.error('DOMAIN ERROR CAUGHT\n', err.stack)
-        try {
-            // 在 5 秒内进行故障保护关机
-            setTimeout(function () {
-                console.error('Failsafe shutdown.')
-                process.exit(1)
-            }, 5000);
-            // 从集群中断开
-            var worker = require('cluster').worker
-            if (worker) worker.disconnect()
-            // 停止接收新请求
-            server.close()
-            try {
-                // 尝试使用 Express 错误路由
-                next(err)
-            } catch (err) {
-                // 如果 Express 错误路由失效，尝试返回普通文本响应
-                console.error('Express error mechanism failed.\n', err.stack)
-                res.statusCode = 500
-                res.setHeader('content-type', 'text/plain')
-                res.end('Server error.')
-            }
-        } catch (err) {
-            console.error('Unable to send 500 response.\n', err.stack)
-        }
-    });
-    // 向域中添加请求和响应对象
-    domain.add(req)
-    domain.add(res)
-    // 执行该域中剩余的请求链
-    domain.run(next)
+app.use(function(req, res, next) {
+  // 为这个请求创建一个域
+  var domain = require('domain').create()
+  // 处理这个域中的错误
+  domain.on('error', function(err) {
+    console.error('DOMAIN ERROR CAUGHT\n', err.stack)
+    try {
+      // 在 5 秒内进行故障保护关机
+      setTimeout(function() {
+        console.error('Failsafe shutdown.')
+        process.exit(1)
+      }, 5000)
+      // 从集群中断开
+      var worker = require('cluster').worker
+      if (worker) worker.disconnect()
+      // 停止接收新请求
+      server.close()
+      try {
+        // 尝试使用 Express 错误路由
+        next(err)
+      } catch (err) {
+        // 如果 Express 错误路由失效，尝试返回普通文本响应
+        console.error('Express error mechanism failed.\n', err.stack)
+        res.statusCode = 500
+        res.setHeader('content-type', 'text/plain')
+        res.end('Server error.')
+      }
+    } catch (err) {
+      console.error('Unable to send 500 response.\n', err.stack)
+    }
+  })
+  // 向域中添加请求和响应对象
+  domain.add(req)
+  domain.add(res)
+  // 执行该域中剩余的请求链
+  domain.run(next)
 })
 
 // 项目根目录
-app.get('/', function (req, res) {
-    res.cookie('monster', 'nom nom') // 设置登录签名
-    res.cookie('signed_monster', 'nom nom', {
-        // domain  控制跟cookie关联的域名
-        // path 控制应用这个 cookie 的路径
-        signed: true, // 是否对cookie进行签名
-        httpOnly: true, // 只允许服务器修改
-        // maxAge:  // 指定cookie过期时间,单位毫秒
-    })
+app.get('/', function(req, res) {
+  res.cookie('monster', 'nom nom') // 设置登录签名
+  res.cookie('signed_monster', 'nom nom', {
+    // domain  控制跟cookie关联的域名
+    // path 控制应用这个 cookie 的路径
+    signed: true, // 是否对cookie进行签名
+    httpOnly: true // 只允许服务器修改
+    // maxAge:  // 指定cookie过期时间,单位毫秒
+  })
 
-    res.render('home')
+  res.render('home')
 })
 
 Vacation.registerRoutes(app)
 
 // 错误处理
-app.get('/fail', function (req, res) {
-    throw new Error('Nope!')
+app.get('/fail', function(req, res) {
+  throw new Error('Nope!')
 })
 
 // **错误的示范**
-app.get('/epic-fail', function (req, res) {
-    process.nextTick(function () {
-        throw new Error('Kaboom!')
-    })
+app.get('/epic-fail', function(req, res) {
+  process.nextTick(function() {
+    throw new Error('Kaboom!')
+  })
 })
 
 // 发送邮件
 app.post('/send-email', (req, res, next) => {
-    email.send('peipei8356@163.com', 'Node test', '你好,Eva,这里是测试文本内容')
+  email.send('peipei8356@163.com', 'Node test', '你好,Eva,这里是测试文本内容')
 })
 
 // 重复使用路由
 function authorize(req, res, next) {
-    if (req.session.authorized) return next()
-    res.render('not-authorized')
+  if (req.session.authorized) return next()
+  res.render('not-authorized')
 }
 
 // 用户登录
 app.get('/user-login', authorize, (req, res, next) => {
-    res.render('user-login')
+  res.render('user-login')
 })
 
-app.post('/post-user-login', function (req, res) {
-    let { userName } = req.body
-    try {
-        // 开启数据库连接
-        connection.connect()
+app.post('/post-user-login', function(req, res) {
+  let { userName } = req.body
+  try {
+    // 开启数据库连接
+    connection.connect()
 
+    const queryStr = `select * from user where uname="${userName}"`
 
-        const queryStr = `select * from user where uname="${userName}"`
+    // 查询数据库
+    connection.query(queryStr, function(error, results, fields) {
+      if (error) throw error
 
-        // 查询数据库
-        connection.query(queryStr, function (error, results, fields) {
-            if (error) throw error
+      // pool.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
+      //     if (error) throw error
+      //     console.log('The solution is: ', results[0].solution)
+      // })
 
-            // pool.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
-            //     if (error) throw error
-            //     console.log('The solution is: ', results[0].solution)
-            // })
+      if (results.length > 0) {
+        // 查询到相关数据则表示成功登陆
+        res.render('user-status', { isLogin: true })
+      } else {
+        res.render('user-status', { isLogin: false })
+      }
 
-            if (results.length > 0) {  // 查询到相关数据则表示成功登陆
-                res.render('user-status', { isLogin: true })
-            } else {
-                res.render('user-status', { isLogin: false })
-            }
-
-            // res.end()
-        })
-    } catch (err) {
-        throw err
-    } finally {
-        // 关闭数据库连接
-        connection.end()
-    }
+      // res.end()
+    })
+  } catch (err) {
+    throw err
+  } finally {
+    // 关闭数据库连接
+    connection.end()
+  }
 })
 
 // about
-app.get('/about', function (req, res) {
-    res.render('about', {
-        fortune: fortunes.getFortunes(),
-        pageTestScript: 'qa/tests-about.js'
-    })
+app.get('/about', function(req, res) {
+  res.render('about', {
+    fortune: fortunes.getFortunes(),
+    pageTestScript: 'qa/tests-about.js'
+  })
 })
 
 // contact
-app.get('/contact', function (req, res) {
-    res.render('pages/contact')
+app.get('/contact', function(req, res) {
+  res.render('pages/contact')
 })
 
 app.get('/upload', (req, res) => {
-    var date = new Date()
-    res.render('upload', {
-        month: date.getMonth() + 1,
-        year: date.getFullYear()
-    })
+  var date = new Date()
+  res.render('upload', {
+    month: date.getMonth() + 1,
+    year: date.getFullYear()
+  })
 })
 
-app.post('/upload/:year/:month', function (req, res) {
-    const form = new formidable.IncomingForm()
-    form.parse(req, function (err, fields, files) {
+app.post('/upload/:year/:month', function(req, res) {
+  const form = new formidable.IncomingForm()
+  form.parse(req, function(err, fields, files) {
+    // console.log('received fields:', fields)
+    // console.log('received files:', files)
 
-        // console.log('received fields:', fields)
-        // console.log('received files:', files)
+    if (err) return res.redirect(303, '/error')
 
-        if (err) return res.redirect(303, '/error')
+    const fileOriginalFilename = files.photo.name
+    const filePath = files.photo.path
+    const fileDir = `${__dirname}/uploads`
+    // 文件夹是否存在，不存在则创建文件夹
+    fs.existsSync(fileDir) || fs.mkdirSync(fileDir)
+    const dstPath = `${fileDir}/${new Date().getTime()}${fileOriginalFilename}`
+    const readStream = fs.createReadStream(filePath) // 打开一个可读的文件流并且返回一个fs.ReadStream对象
+    const writeStream = fs.createWriteStream(dstPath) // 将文件流写入目标磁盘
 
-        const fileOriginalFilename = files.photo.name
-        const filePath = files.photo.path
-        const fileDir = `${__dirname}/uploads`
-        // 文件夹是否存在，不存在则创建文件夹
-        fs.existsSync(fileDir) || fs.mkdirSync(fileDir)
-        const dstPath = `${fileDir}/${new Date().getTime()}${fileOriginalFilename}`
-        const readStream = fs.createReadStream(filePath) // 打开一个可读的文件流并且返回一个fs.ReadStream对象
-        const writeStream = fs.createWriteStream(dstPath) // 将文件流写入目标磁盘
-
-        readStream.pipe(writeStream) // 开启写入任务
-        readStream.on('end', () => { // 写入结束后解除锁定
-            fs.unlinkSync(filePath)
-        })
-
-        // fs.rename(filePath, dstPath, (err) => {
-        //     if (err) {
-        //         console.log('rename error: ' + err)
-        //     } else {
-        //         console.log('rename ok')
-        //     }
-        // })
-
-        res.send('upload success')
-        res.end()
+    readStream.pipe(writeStream) // 开启写入任务
+    readStream.on('end', () => {
+      // 写入结束后解除锁定
+      fs.unlinkSync(filePath)
     })
+
+    // fs.rename(filePath, dstPath, (err) => {
+    //     if (err) {
+    //         console.log('rename error: ' + err)
+    //     } else {
+    //         console.log('rename ok')
+    //     }
+    // })
+
+    res.send('upload success')
+    res.end()
+  })
 })
 
 // /hood-river
 app.get('/hood-river', (req, res) => {
-    res.render('tours/hood-river')
+  res.render('tours/hood-river')
 })
 
 // request-group-rate
-app.get('/request-group-rate', function (req, res) {
-    res.render('tours/request-group-rate')
+app.get('/request-group-rate', function(req, res) {
+  res.render('tours/request-group-rate')
 })
 
 // 添加自动化渲染
 const autoview = {}
 app.use((req, res, next) => {
-    const path = req.path.toLowerCase()
-    // 检查缓存；如果它在那里，渲染这个视图
-    if (autoview[path]) {
-        return res.render(autoview[path])
-    }
+  const path = req.path.toLowerCase()
+  // 检查缓存；如果它在那里，渲染这个视图
+  if (autoview[path]) {
+    return res.render(autoview[path])
+  }
 
-    // 如果它不在缓存里，那就看看有没有 .handlebars 文件能匹配
-    if (fs.existsSync(`${__dirname}/views/${path}.handlebars`)) {
-        autoViews[path] = path.replace(/^\//, '')
-        return res.render(`${__dirname}/views/${path}.handlebars`)
-    }
+  // 如果它不在缓存里，那就看看有没有 .handlebars 文件能匹配
+  if (fs.existsSync(`${__dirname}/views/${path}.handlebars`)) {
+    autoViews[path] = path.replace(/^\//, '')
+    return res.render(`${__dirname}/views/${path}.handlebars`)
+  }
 
-    // 没发现视图；转到 404 处理器
-    next()
+  // 没发现视图；转到 404 处理器
+  next()
 })
 
 // 404 catch-all 处理器（中间件）
-app.use(function (req, res) {
-    res.status(404)
-    res.render('404')
+app.use(function(req, res) {
+  res.status(404)
+  res.render('404')
 })
 
-// 
-app.post('/process', function (req, res) {
-    // req.xhr 是否是ajax请求
-    // 应该根据 Accepts 头信息（可以根据 req.accepts 辅助方法轻松访问）返回一个适当的响应
+//
+app.post('/process', function(req, res) {
+  // req.xhr 是否是ajax请求
+  // 应该根据 Accepts 头信息（可以根据 req.accepts 辅助方法轻松访问）返回一个适当的响应
 
-    if (req.xhr || req.accepts('json,html') === 'json') {
-        // 如果发生错误，应该发送 { error: 'error description' }
-        res.send({ success: true })
-    } else {
-        // 如果发生错误，应该重定向到错误页面
-        res.redirect(303, '/thank-you')
-    }
+  if (req.xhr || req.accepts('json,html') === 'json') {
+    // 如果发生错误，应该发送 { error: 'error description' }
+    res.send({ success: true })
+  } else {
+    // 如果发生错误，应该重定向到错误页面
+    res.redirect(303, '/thank-you')
+  }
 })
 
 // 500 错误处理器（中间件）
-// 这应该出现在所有路由方法的结尾 
-// 需要注意的是，即使你不需要一个 " 下一步 " 方法 
+// 这应该出现在所有路由方法的结尾
+// 需要注意的是，即使你不需要一个 " 下一步 " 方法
 // 它也必须包含，以便 Express 将它识别为一个错误处理程序
-app.use(function (err, req, res, next) {
-    console.error(err.stack)
-    res.status(500)
-    res.render('500')
+app.use(function(err, req, res, next) {
+  console.error(err.stack)
+  res.status(500)
+  res.render('500')
 })
 
 // 启动应用程序
@@ -347,15 +363,21 @@ app.use(function (err, req, res, next) {
 // })
 
 function startServer() {
-    server.listen(app.get('port'), function () {
-        console.log('Express started in ' + app.get('env') + ' mode on http://localhost:' + app.get('port') + '; press Ctrl-C to terminate.');
-    });
+  server.listen(app.get('port'), function() {
+    console.log(
+      'Express started in ' +
+        app.get('env') +
+        ' mode on http://localhost:' +
+        app.get('port') +
+        '; press Ctrl-C to terminate.'
+    )
+  })
 }
 
 // 当直接运行脚本时，require.main === module 是true；
 // 如果它是 false，表明你的脚本是另外一个脚本用 require 加载进来的。
 if (require.main === module) {
-    startServer()
+  startServer()
 } else {
-    module.exports = startServer
+  module.exports = startServer
 }
