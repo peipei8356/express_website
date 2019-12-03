@@ -1,5 +1,36 @@
 const fs = require('fs')
 const data = new Uint8Array(Buffer.from('Node.js中文网'))
+// const asyncHooks = require('async_hooks')
+
+// const hook = asyncHooks.createHook({
+//   init(asyncId, type, triggerAsyncId, resource) {
+//     fs.writeSync(
+//       1,
+//       `init: asyncId-${asyncId},type-${type},triggerAsyncId-${triggerAsyncId}\n`
+//     )
+//   },
+//   before(asyncId) {
+//     fs.writeSync(1, `before: asyncId-${asyncId}\n`)
+//   },
+//   after(asyncId) {
+//     fs.writeSync(1, `after: asyncId-${asyncId}\n`)
+//   },
+//   destroy(asyncId) {
+//     fs.writeSync(1, `destroy: asyncId-${asyncId}\n`)
+//   }
+// })
+
+// asyncHooks.createHook({
+//   init (asyncId, type) {
+//     const executionAsyncId = asyncHooks.executionAsyncId()
+
+//     callstackMap[asyncId] = {
+//       id: executionAsyncId,
+//       isTCP: type === TCPWRAP_NAME,
+//       __tm: Date.now()
+//     }
+//   }
+// }).enable()
 
 // 写文件
 fs.writeFile('./files/文件111.json', data, err => {
@@ -91,10 +122,13 @@ fs.open('myfile', 'wx', (err, fd) => {
   writeMyData(fd)
 })
 
-// 假设 'path/file.txt' 是常规文件。
-fs.unlink('./files/文件122.json', err => {
-  if (err) throw err
-  console.log('文件已删除')
+fs.open('./files/文件122.json', err => {
+  if (err) return
+  // 假设 'path/file.txt' 是常规文件。
+  fs.unlink('./files/文件122.json', err => {
+    if (err) throw err
+    console.log('文件已删除')
+  })
 })
 
 fs.watch('./files/test.json', (eventType, filename) => {
