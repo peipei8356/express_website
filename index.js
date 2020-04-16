@@ -13,15 +13,16 @@ const credentials = require('./lib/credentials')
 const email = require('./lib/email')()
 const mongoose = require('mongoose')
 const Vacation = require('./public/controllers/vacation')
+const Goods = require('./public/controllers/goods.js')
 const hbs = require('express3-handlebars').create({
   defaultLayout: 'main',
   helpers: {
-    section: function(name, options) {
+    section: function (name, options) {
       if (!this._sections) this._sections = {}
       this._sections[name] = options.fn(this)
       return null
     },
-    foo: function() {
+    foo: function () {
       return 'FOO!'
     },
     static(name) {
@@ -123,15 +124,15 @@ app.use((req, res, next) => {
   // 如果你发送了，管道中后续的中间件或路由处理器还会执行，但它们发送的任何响应都会被忽略
 })
 
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   // 为这个请求创建一个域
   var domain = require('domain').create()
   // 处理这个域中的错误
-  domain.on('error', function(err) {
+  domain.on('error', function (err) {
     console.error('DOMAIN ERROR CAUGHT\n', err.stack)
     try {
       // 在 5 秒内进行故障保护关机
-      setTimeout(function() {
+      setTimeout(function () {
         console.error('Failsafe shutdown.')
         process.exit(1)
       }, 5000)
@@ -162,7 +163,7 @@ app.use(function(req, res, next) {
 })
 
 // 项目根目录
-app.get('/', function(req, res) {
+app.get('/', function (req, res) {
   res.cookie('monster', 'nom nom') // 设置登录签名
   res.cookie('signed_monster', 'nom nom', {
     // domain  控制跟cookie关联的域名
@@ -178,13 +179,13 @@ app.get('/', function(req, res) {
 Vacation.registerRoutes(app)
 
 // 错误处理
-app.get('/fail', function(req, res) {
+app.get('/fail', function (req, res) {
   throw new Error('Nope!')
 })
 
 // **错误的示范**
-app.get('/epic-fail', function(req, res) {
-  process.nextTick(function() {
+app.get('/epic-fail', function (req, res) {
+  process.nextTick(function () {
     throw new Error('Kaboom!')
   })
 })
@@ -205,7 +206,31 @@ app.get('/user-login', authorize, (req, res, next) => {
   res.render('user-login')
 })
 
-app.post('/post-user-login', function(req, res) {
+app.get('/queryGoodsList', function (req, res) {
+  try {
+    // 开启数据库连接
+    connection.connect()
+    const queryStr = 'select * from t_goods_info'
+    connection.query(queryStr, function (error, results, fields) {
+      if (error) throw error
+      let res = {
+        retDesc: '成功',
+        retCode: '00',
+        jsonBody: {
+          list: results.length > 0 ? results : []
+        }
+      }
+      res.render(res)
+    })
+  } catch (e) {
+    throw e
+  } finally {
+    // 关闭数据库连接
+    connection.end()
+  }
+})
+
+app.post('/post-user-login', function (req, res) {
   let { userName } = req.body
   try {
     // 开启数据库连接
@@ -214,7 +239,7 @@ app.post('/post-user-login', function(req, res) {
     const queryStr = `select * from user where uname="${userName}"`
 
     // 查询数据库
-    connection.query(queryStr, function(error, results, fields) {
+    connection.query(queryStr, function (error, results, fields) {
       if (error) throw error
 
       // pool.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
@@ -240,7 +265,7 @@ app.post('/post-user-login', function(req, res) {
 })
 
 // about
-app.get('/about', function(req, res) {
+app.get('/about', function (req, res) {
   res.render('about', {
     fortune: fortunes.getFortunes(),
     pageTestScript: 'qa/tests-about.js'
@@ -248,7 +273,7 @@ app.get('/about', function(req, res) {
 })
 
 // contact
-app.get('/contact', function(req, res) {
+app.get('/contact', function (req, res) {
   res.render('pages/contact')
 })
 
@@ -260,9 +285,9 @@ app.get('/upload', (req, res) => {
   })
 })
 
-app.post('/upload/:year/:month', function(req, res) {
+app.post('/upload/:year/:month', function (req, res) {
   const form = new formidable.IncomingForm()
-  form.parse(req, function(err, fields, files) {
+  form.parse(req, function (err, fields, files) {
     // console.log('received fields:', fields)
     // console.log('received files:', files)
 
@@ -302,7 +327,7 @@ app.get('/hood-river', (req, res) => {
 })
 
 // request-group-rate
-app.get('/request-group-rate', function(req, res) {
+app.get('/request-group-rate', function (req, res) {
   res.render('tours/request-group-rate')
 })
 
@@ -326,13 +351,13 @@ app.use((req, res, next) => {
 })
 
 // 404 catch-all 处理器（中间件）
-app.use(function(req, res) {
+app.use(function (req, res) {
   res.status(404)
   res.render('404')
 })
 
 //
-app.post('/process', function(req, res) {
+app.post('/process', function (req, res) {
   // req.xhr 是否是ajax请求
   // 应该根据 Accepts 头信息（可以根据 req.accepts 辅助方法轻松访问）返回一个适当的响应
 
@@ -349,7 +374,7 @@ app.post('/process', function(req, res) {
 // 这应该出现在所有路由方法的结尾
 // 需要注意的是，即使你不需要一个 " 下一步 " 方法
 // 它也必须包含，以便 Express 将它识别为一个错误处理程序
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   console.error(err.stack)
   res.status(500)
   res.render('500')
@@ -363,13 +388,13 @@ app.use(function(err, req, res, next) {
 // })
 
 function startServer() {
-  server.listen(app.get('port'), function() {
+  server.listen(app.get('port'), function () {
     console.log(
       'Express started in ' +
-        app.get('env') +
-        ' mode on http://localhost:' +
-        app.get('port') +
-        '; press Ctrl-C to terminate.'
+      app.get('env') +
+      ' mode on http://localhost:' +
+      app.get('port') +
+      '; press Ctrl-C to terminate.'
     )
   })
 }
